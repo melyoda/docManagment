@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Document Manager</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            padding: 40px;
+        }
+
+        .container {
+            background: #fff;
+            border-radius: 10px;
+            padding: 30px;
+            max-width: 600px;
+            margin: auto;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        input[type="file"],
+        input[type="text"],
+        select,
+        button {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            font-size: 16px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .button-group button {
+            flex: 1;
+            cursor: pointer;
+            background: #007bff;
+            color: white;
+            border: none;
+            transition: background 0.3s ease;
+        }
+
+        .button-group button:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>Document Management</h2>
+
+    <form id="uploadForm" action="/api/files/upload" method="post" enctype="multipart/form-data">
+        <input type="file" name="file" required>
+        <button type="submit">Upload</button>
+    </form>
+
+    <input type="text" id="search" placeholder="Search by title or content">
+
+    <div class="button-group">
+        <button id="sortBtn">Sort by Title</button>
+        <button id="analyticsBtn">Analytics</button>
+    </div>
+
+    <select id="classification">
+        <option value="">Select Classification</option>
+        <option value="finance">Finance</option>
+        <option value="legal">Legal</option>
+        <option value="technical">Technical</option>
+        <!-- Add more categories as needed -->
+    </select>
+</div>
+
+<script>
+    // Add JS hooks here later if needed
+    document.getElementById("sortBtn").addEventListener("click", () => {
+        alert("Sort by title clicked");
+        // Connect to your backend sort endpoint
+    });
+
+    document.getElementById("analyticsBtn").addEventListener("click", () => {
+        alert("Analytics clicked");
+        // Connect to analytics endpoint
+    });
+
+    document.getElementById("classification").addEventListener("change", (e) => {
+        alert("Classification selected: " + e.target.value);
+        // Trigger classification filter
+    });
+</script>
+</body>
+</html>
