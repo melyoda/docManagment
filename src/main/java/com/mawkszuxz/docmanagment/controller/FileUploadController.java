@@ -1,54 +1,67 @@
 package com.mawkszuxz.docmanagment.controller;
 
 import com.mawkszuxz.docmanagment.model.DocumentMetadata;
+import com.mawkszuxz.docmanagment.service.DocumentService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
-
+import java.util.Objects;
 
 @RestController
 @RequestMapping("/api/files")
 public class FileUploadController {
 
-    private static final String UPLOAD_DIR = System.getProperty("user.dir") + "file.upload-dir";
+    private final DocumentService documentsService;
 
+    // Constructor injection is preferred
+    public FileUploadController(DocumentService documentsService) {
+        this.documentsService = documentsService;
+    }
+
+//    public static final String UPLOAD_DIR = "fileDir/";
+    @Value("${file.upload-dir}")
+    private String UPLOAD_DIR;
 
     @PostMapping("/upload")
-    public ResponseEntity<String> uploadFile(@RequestParam("file") MultipartFile file) {
-        if (file.isEmpty()) {
-            return ResponseEntity.badRequest().body("File is empty");
-        }
-
+    public ResponseEntity<?> uploadFile(@RequestParam("file") MultipartFile file){
         try{
-            File uploadDir = new File(UPLOAD_DIR);
-            if (!uploadDir.exists()) {
-                boolean created = uploadDir.mkdirs();
-                if (!created) {
-                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                            .body("Could not create upload directory");
-                }
+            //create upload dir if it doesn't exist
+//            Path uploadPath = Paths.get(UPLOAD_DIR);
+            Path uploadPath = Paths.get(System.getProperty("user.dir"), UPLOAD_DIR);
+            if (!Files.exists(uploadPath)) {
+                Files.createDirectories(uploadPath);
             }
 
-            String filePath = UPLOAD_DIR + file.getOriginalFilename();
-            file.transferTo(new File(filePath));
+            //save file to disk
+            Path filePath = uploadPath.resolve(Objects.requireNonNull(file.getOriginalFilename()));
+            file.transferTo(filePath.toFile());
 
-            DocumentMetadata documentMetadata = new DocumentMetadata();
-            documentMetadata.setTitle(file.getOriginalFilename());
-            documentMetadata.setId("ID: " + file.getOriginalFilename());
-            documentMetadata.setUploadedAt(LocalDateTime.now());
-            documentMetadata.setSize(file.getSize());
+            //file MetaData
+            DocumentMetadata metadata = DocumentMetadata.builder()
+                    .originalFilename(file.getOriginalFilename())
+                    .title("Placeholder for now: " + file.getOriginalFilename())
+                    .filePath(filePath.toString())
+                    .fileType(file.getContentType())
+                    .fileSize(file.getSize())
+                    .uploadedAt(LocalDateTime.now())
+                    .build();
 
-            System.out.println("Doc " + documentMetadata.toString());
+            //saving data
+            documentsService.saveDoc(metadata);
 
-
-            return ResponseEntity.ok("File uploaded successfully: " + file.getOriginalFilename());
+            return ResponseEntity.ok("File '" + file.getOriginalFilename() + "' uploaded successfully.");
         }catch (IOException e){
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Upload failed: " + e.getMessage());
+           return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Upload failed: " + e.getMessage());
         }
     }
+
+
 }

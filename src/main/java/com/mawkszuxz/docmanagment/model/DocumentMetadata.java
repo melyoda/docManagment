@@ -1,50 +1,40 @@
 package com.mawkszuxz.docmanagment.model;
 
+import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
 
+@Builder
+@Entity
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 public class DocumentMetadata {
-    private String id;
-    private String title;
-    private String originalFilename;
-    //private String content;
-    private long size;
-    private LocalDateTime uploadedAt;
-
-    public DocumentMetadata(LocalDateTime uploadedAt, long size, String originalFilename, String title) {
-        this.uploadedAt = uploadedAt;
-        this.size = size;
-        this.originalFilename = originalFilename;
-        this.title = title;
-    }
-
-    @Override
-    public String toString(){
-        return "ID: " + id + " Title: " + title + " Size: " + size + " Uploaded at: " + uploadedAt;
-    }
-
-}
-/*
-@Entity
-public class Document {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String title; // Extracted from the document
     private String originalFilename;
-    private String filePath; // Full path or cloud URL
-    private Long size; // in bytes
+
+    private String title;
+
+    private String filePath;
+
+    private String fileType;
+
+    private long fileSize;
+
     private LocalDateTime uploadedAt;
 
-    // optional: content snippet or preview text
-    // @Lob
-    // private String contentPreview;
-
-    // constructors, getters, setters...
+    @Override
+    public String toString(){
+        return "ID" + id
+                + "\nTitle" + title
+                + "\nOriginal Filename" + originalFilename
+                + "\nFile Path" + filePath
+                + "\nFile Type" + fileType
+                + "\nFile Size" + fileSize
+                + "\nUploaded At" + uploadedAt;
+    }
 }
- */
