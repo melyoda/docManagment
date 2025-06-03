@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 
 @Builder
 @Entity
+@Table(name = "document_metadata")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -19,6 +20,7 @@ public class DocumentMetadata {
 
     private String title;
 
+    @Column(name = "file_path")
     private String filePath;
 
     private String fileType;
@@ -26,6 +28,9 @@ public class DocumentMetadata {
     private long fileSize;
 
     private LocalDateTime uploadedAt;
+
+    @OneToOne(mappedBy = "metadata", cascade = CascadeType.ALL)
+    private DocumentContent content;
 
     @Override
     public String toString(){
