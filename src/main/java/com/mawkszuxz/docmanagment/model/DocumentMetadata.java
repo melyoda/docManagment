@@ -29,17 +29,21 @@ public class DocumentMetadata {
 
     private LocalDateTime uploadedAt;
 
-    @OneToOne(mappedBy = "metadata", cascade = CascadeType.ALL)
+    @OneToOne(mappedBy = "metadata", cascade = CascadeType.ALL,  orphanRemoval = true)
     private DocumentContent content;
 
+    // a custom one:
     @Override
-    public String toString(){
-        return "ID" + id
-                + "\nTitle" + title
-                + "\nOriginal Filename" + originalFilename
-                + "\nFile Path" + filePath
-                + "\nFile Type" + fileType
-                + "\nFile Size" + fileSize
-                + "\nUploaded At" + uploadedAt;
+    public String toString() {
+        return "DocumentMetadata{" +
+                "id=" + id +
+                ", originalFilename='" + originalFilename + '\'' +
+                ", title='" + title + '\'' +
+                ", filePath='" + filePath + '\'' +
+                ", fileType='" + fileType + '\'' +
+                ", fileSize=" + fileSize +
+                ", uploadedAt=" + uploadedAt +
+                ", hasContent=" + (content != null && content.getId() != null) +
+                '}';
     }
 }

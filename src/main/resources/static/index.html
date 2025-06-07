@@ -14,7 +14,7 @@
             background: #fff;
             border-radius: 10px;
             padding: 30px;
-            max-width: 600px;
+            max-width: 800px;
             margin: auto;
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
         }
@@ -53,6 +53,53 @@
         .button-group button:hover {
             background: #0056b3;
         }
+
+        .titles-container {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+
+        .titles-list {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .titles-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .titles-list li:last-child {
+            border-bottom: none;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+            gap: 5px;
+        }
+
+        .pagination button {
+            width: auto;
+            padding: 8px 12px;
+        }
+
+        .pagination-info {
+            text-align: center;
+            margin-top: 10px;
+            color: #666;
+        }
+
+        .loading {
+            text-align: center;
+            margin: 20px 0;
+            color: #666;
+            font-style: italic;
+        }
     </style>
 </head>
 <body>
@@ -76,16 +123,146 @@
         <option value="finance">Finance</option>
         <option value="legal">Legal</option>
         <option value="technical">Technical</option>
-        <!-- Add more categories as needed -->
     </select>
+
+    <div id="titlesContainer" class="titles-container" style="display: none;">
+        <h3>Sorted Document Titles</h3>
+        <div id="loading" class="loading" style="display: none;">Loading titles...</div>
+        <ul id="titlesList" class="titles-list"></ul>
+        <div id="paginationInfo" class="pagination-info"></div>
+        <div id="paginationControls" class="pagination"></div>
+    </div>
 </div>
 
 <script>
-    // Add JS hooks here later if needed
-    document.getElementById("sortBtn").addEventListener("click", () => {
-        alert("Sort by title clicked");
-        // Connect to your backend sort endpoint
+    let currentPage = 0;
+    const pageSize = 5; // Smaller page size for demo purposes
+    let totalPages = 0;
+
+    document.getElementById("sortBtn").addEventListener("click", async () => {
+        try {
+            // Show loading state
+            const titlesContainer = document.getElementById("titlesContainer");
+            const loadingElement = document.getElementById("loading");
+            const sortBtn = document.getElementById("sortBtn");
+
+            sortBtn.disabled = true;
+            sortBtn.textContent = "Loading...";
+            loadingElement.style.display = "block";
+            titlesContainer.style.display = "block";
+            document.getElementById("titlesList").innerHTML = "";
+
+            // Reset to first page when sorting
+            currentPage = 0;
+
+            await fetchTitles(currentPage);
+        } catch (error) {
+            console.error('Error fetching sorted titles:', error);
+            alert('Failed to fetch sorted titles. Please try again.');
+        } finally {
+            const sortBtn = document.getElementById("sortBtn");
+            sortBtn.disabled = false;
+            sortBtn.textContent = "Sort by Title";
+        }
     });
+
+    async function fetchTitles(page) {
+        try {
+            const loadingElement = document.getElementById("loading");
+            loadingElement.style.display = "block";
+
+            const response = await fetch(`/api/files/titles?page=${page}&size=${pageSize}`);
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            // Update pagination info
+            currentPage = page;
+            totalPages = data.totalPages;
+
+            displayTitles(data.content);
+            updatePaginationInfo(data);
+            renderPaginationControls();
+        } catch (error) {
+            console.error('Error fetching titles:', error);
+            alert('Failed to fetch titles. Please try again.');
+        } finally {
+            document.getElementById("loading").style.display = "none";
+        }
+    }
+
+    function displayTitles(titles) {
+        const titlesList = document.getElementById("titlesList");
+        titlesList.innerHTML = '';
+
+        if (titles.length === 0) {
+            const item = document.createElement('li');
+            item.textContent = 'No titles found';
+            titlesList.appendChild(item);
+        } else {
+            titles.forEach(title => {
+                const item = document.createElement('li');
+                item.textContent = title;
+                titlesList.appendChild(item);
+            });
+        }
+    }
+
+    function updatePaginationInfo(data) {
+        const paginationInfo = document.getElementById("paginationInfo");
+        paginationInfo.textContent = `Showing ${data.numberOfElements} of ${data.totalElements} items (Page ${currentPage + 1} of ${totalPages})`;
+    }
+
+    function renderPaginationControls() {
+        const paginationControls = document.getElementById("paginationControls");
+        paginationControls.innerHTML = '';
+
+        // Previous button
+        const prevButton = document.createElement('button');
+        prevButton.textContent = 'Previous';
+        prevButton.disabled = currentPage === 0;
+        prevButton.addEventListener('click', () => {
+            if (currentPage > 0) {
+                fetchTitles(currentPage - 1);
+            }
+        });
+        paginationControls.appendChild(prevButton);
+
+        // Page numbers
+        const maxVisiblePages = 5;
+        let startPage = Math.max(0, currentPage - Math.floor(maxVisiblePages / 2));
+        let endPage = Math.min(totalPages - 1, startPage + maxVisiblePages - 1);
+
+        // Adjust if we're at the end
+        if (endPage - startPage + 1 < maxVisiblePages) {
+            startPage = Math.max(0, endPage - maxVisiblePages + 1);
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
+            const pageButton = document.createElement('button');
+            pageButton.textContent = i + 1;
+            pageButton.disabled = i === currentPage;
+            pageButton.style.backgroundColor = i === currentPage ? '#0056b3' : '';
+            pageButton.addEventListener('click', () => {
+                fetchTitles(i);
+            });
+            paginationControls.appendChild(pageButton);
+        }
+
+        // Next button
+        const nextButton = document.createElement('button');
+        nextButton.textContent = 'Next';
+        nextButton.disabled = currentPage >= totalPages - 1;
+        nextButton.addEventListener('click', () => {
+            if (currentPage < totalPages - 1) {
+                fetchTitles(currentPage + 1);
+            }
+        });
+        paginationControls.appendChild(nextButton);
+    }
 
     document.getElementById("analyticsBtn").addEventListener("click", () => {
         alert("Analytics clicked");
