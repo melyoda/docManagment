@@ -1,10 +1,10 @@
 package com.mawkszuxz.docmanagment.service;
 
 
-import com.google.cloud.storage.BlobId;
-import com.google.cloud.storage.BlobInfo;
+
 import com.mawkszuxz.docmanagment.model.DocumentContent;
 //import com.mawkszuxz.docmanagment.repository.DocumentContentRepository;
+import com.mawkszuxz.docmanagment.util.CategoryResult;
 import org.apache.tika.exception.TikaException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.multipart.MultipartFile;
@@ -24,9 +24,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 
-import com.google.cloud.storage.Storage;
-
-
 
 
 @Service
@@ -39,13 +36,8 @@ public class DocumentService {
     private SyncWithSearchService syncWithSearchService;
 
     @Autowired
-    private Storage storage;
+    private CategorizationService categorizationService;
 
-//     @Autowired
-//     private DocumentContentRepository documentContentRepository;
-
-//    @Value("${file.upload-dir}")
-//    private String UPLOAD_DIR;
 
     public void processAndSave(MultipartFile file) throws IOException {
         //some file validation
@@ -62,12 +54,6 @@ public class DocumentService {
         System.out.println("Sanitized Original Filename for processing: " + originalFilename);
         System.out.println("Content Type: " + file.getContentType());
         System.out.println("Size: " + file.getSize() + " bytes");
-
-        /*--------------------------------------------------------*/
-        //Create upload dir
-        //and save file to dir
-//        Path  filePath = saveFileToPath(file, originalFilename);
-          String gcsUrl = uploadFileToGCS(file, originalFilename);
 
         /*--------------------------------------------------------*/
 
@@ -113,8 +99,6 @@ public class DocumentService {
         DocumentMetadata metadata = DocumentMetadata.builder()
                 .originalFilename(originalFilename)
                 .title(finalTitle)
-//                .filePath(filePath.toString())
-                .filePath(gcsUrl)
                 .fileType(file.getContentType())
                 .fileSize(file.getSize())
                 .uploadedAt(LocalDateTime.now())
@@ -133,9 +117,16 @@ public class DocumentService {
                 .metadata(metadata)
                 .build();
 
+        CategoryResult result = categorizationService.classify(contentToSave);
+
+        // 2. Set both category and subcategory on the metadata object
+        metadata.setCategory(result.getMainCategory());
+        metadata.setSubcategory(result.getSubCategory());
+
         metadata.setContent(content);// Establish the bidirectional relationship
         System.out.println("--- Attempting to save to DB ---");
-        System.out.println("Metadata to save : " + metadata.toString());
+        System.out.println("Metadata to save : " + metadata);
+        System.out.println("Categories added : "+ metadata.hasCategory());
         // Avoid logging full content if very large
        // System.out.println("Content snippet to save (first 100 chars): " + (contentToSave.length() > 100 ? contentToSave.substring(0,100) : contentToSave).replace("\n", " "));
 
@@ -195,49 +186,4 @@ public class DocumentService {
 
         return sanitizedFilename;
     }
-
-    /*
-    public Path saveFileToPath(MultipartFile file,String originalFilename) throws IOException {
-        //Create upload dir
-        Path uploadPath = Paths.get(System.getProperty("user.dir"), UPLOAD_DIR);
-        if (!Files.exists(uploadPath)) {
-            System.out.println("Creating upload directory: " + uploadPath);
-            Files.createDirectories(uploadPath);
-        }
-
-        //Save file to disk
-        Path filePath = uploadPath.resolve(originalFilename);
-        try {
-            System.out.println("Saving uploaded file to: " + filePath);
-            file.transferTo(filePath.toFile());
-            System.out.println("File saved successfully.");
-        }catch (IOException e) {
-            System.err.println("Error saving uploaded file to disk: " + e.getMessage());
-            throw new IOException("Could not save file " + originalFilename + ": " + e.getMessage(), e);
-        }
-
-        return filePath;
-    }
-    */
-    @Value("${gcs.bucket.name}")
-    private String bucketName;
-
-    private String uploadFileToGCS(MultipartFile file, String objectName) throws IOException {
-        BlobId blobId = BlobId.of(bucketName, objectName);
-        BlobInfo blobInfo = BlobInfo.newBuilder(blobId)
-                .setContentType(file.getContentType())
-                .build();
-
-        try {
-            storage.create(blobInfo, file.getBytes());
-        }catch (Exception e) {
-            System.out.println(e.getMessage());
-            throw e;
-        }
-
-        return "https://storage.googleapis.com/" + bucketName + "/" + objectName;
-    }
-
-
 }
-
